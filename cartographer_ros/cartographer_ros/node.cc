@@ -215,8 +215,22 @@ void Node::PublishTrajectoryStates(const ::ros::WallTimerEvent& timer_event) {
     // information is better.
     const ::cartographer::common::Time now = std::max(
         FromRos(ros::Time::now()), extrapolator.GetLastExtrapolatedTime());
+    using TIME = ::cartographer::common::Time;
+    static TIME* timer = nullptr;
+    if (timer == nullptr) {
+      timer = new TIME(now);
+    }
     stamped_transform.header.stamp = ToRos(now);
-
+    //LOG(INFO) << "!!!local to map = "
+              //<< trajectory_state.local_to_map.translation();
+    if (trajectory_state.local_to_map.translation().norm() > 0.1) {
+      LOG(INFO) << "!!!final local to map = "
+                << trajectory_state.local_to_map.translation().norm()
+                << " at time " << now;
+      LOG(INFO) << "delay = "
+                 << ::cartographer::common::ToSeconds(now - *timer);
+      ros::shutdown();
+    }
     Rigid3d tracking_to_local = extrapolator.ExtrapolatePose(now);
     if (trajectory_state.trajectory_options.publish_frame_projected_to_2d) {
       tracking_to_local = carto::transform::Embed3D(

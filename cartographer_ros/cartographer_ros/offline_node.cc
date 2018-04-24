@@ -63,6 +63,7 @@ DEFINE_bool(keep_running, false,
 DEFINE_double(skip_seconds, 0,
               "Optional amount of seconds to skip from the beginning "
               "(i.e. when the earliest bag starts.). ");
+DEFINE_bool(loop, false, "Loop the bags.");
 
 namespace cartographer_ros {
 

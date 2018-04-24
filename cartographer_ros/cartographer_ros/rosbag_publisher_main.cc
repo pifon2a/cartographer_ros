@@ -94,9 +94,9 @@ int main(int argc, char** argv) {
   ros::Duration bag_to_current = current_start - bag_start;
   for (const rosbag::MessageInstance& message : view) {
     ros::Duration after_bag_start = message.getTime() - bag_start;
-    if (after_bag_start > kRunDuration) {
-      break;
-    }
+// if (after_bag_start > kRunDuration) {
+//     break;
+//    }
     if (!::ros::ok()) {
       break;
     }

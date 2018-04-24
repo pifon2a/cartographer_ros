@@ -30,7 +30,9 @@
       required="$(arg no_rviz)"
       type="cartographer_offline_node" args="
           -configuration_directory $(find cartographer_ros)/configuration_files
+          -skip_seconds $(arg skip_seconds)
           -configuration_basenames backpack_2d.lua
+          -load_map $(arg load_map)
           -urdf_filenames $(find cartographer_ros)/urdf/backpack_2d.urdf
           -bag_filenames $(arg bag_filenames)"
       output="screen">
