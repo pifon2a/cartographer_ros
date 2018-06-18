@@ -99,5 +99,5 @@ RUN curl https://sdk.cloud.google.com | bash && \
     pip install --upgrade google-cloud-bigquery
 
 COPY evaluation/worker.py /worker.py
-COPY evaluation/rediswq.py /rediswq.py
-CMD python worker.py
+#COPY evaluation/rediswq.py /rediswq.py
+#ENTRYPOINT["worker.py"]
