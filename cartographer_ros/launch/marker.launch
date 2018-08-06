@@ -1,0 +1,16 @@
+<launch>
+  <param name="use_sim_time" value="true" />
+  <node name="playbag" pkg="rosbag" type="play"
+    args="--clock --start=30 $(arg bag_filename)">
+    <remap from="image_raw_bgr8" to="virtual_camera/image_raw" />
+    <remap from="cv_camera/camera_info" to="virtual_camera/camera_info"/>
+  </node>
+  <node name="marker_detection_node" pkg="cartographer_ros"
+      type="marker_ronin_node.sh" args="
+       --marker_config=/usr/local/google/home/pifon/workspace/marker_72dpi_proto.txt
+       --marker_topic=markers
+       --start_camera=false
+       --camera_topic=/virtual_camera/image_raw
+       --logtostderr"
+       output="screen"/>
+</launch>

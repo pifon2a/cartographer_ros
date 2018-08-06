@@ -100,7 +100,24 @@ void SensorBridge::HandleNavSatFixMessage(
 void SensorBridge::HandleLandmarkMessage(
     const std::string& sensor_id,
     const cartographer_ros_msgs::LandmarkList::ConstPtr& msg) {
-  trajectory_builder_->AddSensorData(sensor_id, ToLandmarkData(*msg));
+  const carto::common::Time time = FromRos(msg->header.stamp);
+  const auto tracking_from_camera = tf_bridge_.LookupToTracking(
+      time, CheckNoLeadingSlash(msg->header.frame_id));
+  auto landmark_data = ToLandmarkData(*msg);
+  if (tracking_from_camera != nullptr) {
+    LOG(INFO) << "!!!!!!!!!!!!!!!!!!! got the transform";
+    for (auto& observation : landmark_data.landmark_observations) {
+      LOG(INFO) << "Tracking_from_camera = " << *tracking_from_camera;
+      LOG(INFO) << "Camera from landmark = "
+                << observation.landmark_to_tracking_transform;
+      LOG(INFO) << "\n\n\n\n\n";
+      observation.translation_weight = 10;
+      observation.rotation_weight = 0;
+      observation.landmark_to_tracking_transform =
+          *tracking_from_camera * observation.landmark_to_tracking_transform;
+    }
+  }
+  trajectory_builder_->AddSensorData(sensor_id, landmark_data);
 }
 
 std::unique_ptr<carto::sensor::ImuData> SensorBridge::ToImuData(

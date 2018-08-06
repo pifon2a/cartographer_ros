@@ -30,7 +30,7 @@ namespace {
 using ::cartographer::transform::Rigid3d;
 
 constexpr double kTrajectoryLineStripMarkerScale = 0.07;
-constexpr double kLandmarkMarkerScale = 0.3;
+constexpr double kLandmarkMarkerScale = 0.2;
 constexpr double kConstraintMarkerScale = 0.025;
 
 ::std_msgs::ColorRGBA ToMessage(const cartographer::io::FloatColor& color) {
@@ -75,7 +75,7 @@ visualization_msgs::Marker CreateLandmarkMarker(int landmark_index,
   visualization_msgs::Marker marker;
   marker.ns = "Landmarks";
   marker.id = landmark_index;
-  marker.type = visualization_msgs::Marker::CUBE;
+  marker.type = visualization_msgs::Marker::SPHERE;
   marker.header.stamp = ::ros::Time::now();
   marker.header.frame_id = frame_id;
   marker.scale.x = kLandmarkMarkerScale;
@@ -364,125 +364,29 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetLandmarkPosesList() {
 visualization_msgs::MarkerArray MapBuilderBridge::GetConstraintList() {
   visualization_msgs::MarkerArray constraint_list;
   int marker_id = 0;
-  visualization_msgs::Marker constraint_intra_marker;
-  constraint_intra_marker.id = marker_id++;
-  constraint_intra_marker.ns = "Intra constraints";
-  constraint_intra_marker.type = visualization_msgs::Marker::LINE_LIST;
-  constraint_intra_marker.header.stamp = ros::Time::now();
-  constraint_intra_marker.header.frame_id = node_options_.map_frame;
-  constraint_intra_marker.scale.x = kConstraintMarkerScale;
-  constraint_intra_marker.pose.orientation.w = 1.0;
+  visualization_msgs::Marker constraint_marker;
+  constraint_marker.id = marker_id++;
+  constraint_marker.ns = "Landmark constraints";
+  constraint_marker.type = visualization_msgs::Marker::LINE_LIST;
+  constraint_marker.header.stamp = ros::Time::now();
+  constraint_marker.header.frame_id = node_options_.map_frame;
+  constraint_marker.scale.x = kConstraintMarkerScale;
+  constraint_marker.pose.orientation.w = 1.0;
 
-  visualization_msgs::Marker residual_intra_marker = constraint_intra_marker;
-  residual_intra_marker.id = marker_id++;
-  residual_intra_marker.ns = "Intra residuals";
-  // This and other markers which are less numerous are set to be slightly
-  // above the intra constraints marker in order to ensure that they are
-  // visible.
-  residual_intra_marker.pose.position.z = 0.1;
-
-  visualization_msgs::Marker constraint_inter_same_trajectory_marker =
-      constraint_intra_marker;
-  constraint_inter_same_trajectory_marker.id = marker_id++;
-  constraint_inter_same_trajectory_marker.ns =
-      "Inter constraints, same trajectory";
-  constraint_inter_same_trajectory_marker.pose.position.z = 0.1;
-
-  visualization_msgs::Marker residual_inter_same_trajectory_marker =
-      constraint_intra_marker;
-  residual_inter_same_trajectory_marker.id = marker_id++;
-  residual_inter_same_trajectory_marker.ns = "Inter residuals, same trajectory";
-  residual_inter_same_trajectory_marker.pose.position.z = 0.1;
-
-  visualization_msgs::Marker constraint_inter_diff_trajectory_marker =
-      constraint_intra_marker;
-  constraint_inter_diff_trajectory_marker.id = marker_id++;
-  constraint_inter_diff_trajectory_marker.ns =
-      "Inter constraints, different trajectories";
-  constraint_inter_diff_trajectory_marker.pose.position.z = 0.1;
-
-  visualization_msgs::Marker residual_inter_diff_trajectory_marker =
-      constraint_intra_marker;
-  residual_inter_diff_trajectory_marker.id = marker_id++;
-  residual_inter_diff_trajectory_marker.ns =
-      "Inter residuals, different trajectories";
-  residual_inter_diff_trajectory_marker.pose.position.z = 0.1;
-
-  const auto trajectory_node_poses =
-      map_builder_->pose_graph()->GetTrajectoryNodePoses();
-  const auto submap_poses = map_builder_->pose_graph()->GetAllSubmapPoses();
-  const auto constraints = map_builder_->pose_graph()->constraints();
+  const auto constraints = map_builder_->pose_graph()->GetLandmarkConstraints();
 
   for (const auto& constraint : constraints) {
-    visualization_msgs::Marker *constraint_marker, *residual_marker;
-    std_msgs::ColorRGBA color_constraint, color_residual;
-    if (constraint.tag ==
-        cartographer::mapping::PoseGraph::Constraint::INTRA_SUBMAP) {
-      constraint_marker = &constraint_intra_marker;
-      residual_marker = &residual_intra_marker;
-      // Color mapping for submaps of various trajectories - add trajectory id
-      // to ensure different starting colors. Also add a fixed offset of 25
-      // to avoid having identical colors as trajectories.
-      color_constraint = ToMessage(
-          cartographer::io::GetColor(constraint.submap_id.submap_index +
-                                     constraint.submap_id.trajectory_id + 25));
-      color_residual.a = 1.0;
-      color_residual.r = 1.0;
-    } else {
-      if (constraint.node_id.trajectory_id ==
-          constraint.submap_id.trajectory_id) {
-        constraint_marker = &constraint_inter_same_trajectory_marker;
-        residual_marker = &residual_inter_same_trajectory_marker;
-        // Bright yellow
-        color_constraint.a = 1.0;
-        color_constraint.r = color_constraint.g = 1.0;
-      } else {
-        constraint_marker = &constraint_inter_diff_trajectory_marker;
-        residual_marker = &residual_inter_diff_trajectory_marker;
-        // Bright orange
-        color_constraint.a = 1.0;
-        color_constraint.r = 1.0;
-        color_constraint.g = 165. / 255.;
-      }
-      // Bright cyan
-      color_residual.a = 1.0;
-      color_residual.b = color_residual.g = 1.0;
-    }
+    constraint_marker.points.push_back(
+        ToGeometryMsgPoint(std::get<1>(constraint).translation()));
+    constraint_marker.points.push_back(
+        ToGeometryMsgPoint(std::get<2>(constraint).translation()));
 
-    for (int i = 0; i < 2; ++i) {
-      constraint_marker->colors.push_back(color_constraint);
-      residual_marker->colors.push_back(color_residual);
-    }
-
-    const auto submap_it = submap_poses.find(constraint.submap_id);
-    if (submap_it == submap_poses.end()) {
-      continue;
-    }
-    const auto& submap_pose = submap_it->data.pose;
-    const auto node_it = trajectory_node_poses.find(constraint.node_id);
-    if (node_it == trajectory_node_poses.end()) {
-      continue;
-    }
-    const auto& trajectory_node_pose = node_it->data.global_pose;
-    const Rigid3d constraint_pose = submap_pose * constraint.pose.zbar_ij;
-
-    constraint_marker->points.push_back(
-        ToGeometryMsgPoint(submap_pose.translation()));
-    constraint_marker->points.push_back(
-        ToGeometryMsgPoint(constraint_pose.translation()));
-
-    residual_marker->points.push_back(
-        ToGeometryMsgPoint(constraint_pose.translation()));
-    residual_marker->points.push_back(
-        ToGeometryMsgPoint(trajectory_node_pose.translation()));
+    std_msgs::ColorRGBA color = ToMessage(cartographer::io::GetColor(
+        GetLandmarkIndex(std::get<0>(constraint), &landmark_to_index_)));
+    constraint_marker.colors.push_back(color);
+    constraint_marker.colors.push_back(color);
   }
-
-  constraint_list.markers.push_back(constraint_intra_marker);
-  constraint_list.markers.push_back(residual_intra_marker);
-  constraint_list.markers.push_back(constraint_inter_same_trajectory_marker);
-  constraint_list.markers.push_back(residual_inter_same_trajectory_marker);
-  constraint_list.markers.push_back(constraint_inter_diff_trajectory_marker);
-  constraint_list.markers.push_back(residual_inter_diff_trajectory_marker);
+  constraint_list.markers.push_back(constraint_marker);
   return constraint_list;
 }
 

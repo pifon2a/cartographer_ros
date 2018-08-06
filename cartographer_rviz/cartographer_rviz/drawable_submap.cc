@@ -54,12 +54,8 @@ DrawableSubmap::DrawableSubmap(const ::cartographer::mapping::SubmapId& id,
       display_context_(display_context),
       submap_node_(map_node->createChildSceneNode()),
       submap_id_text_node_(submap_node_->createChildSceneNode()),
-      pose_axes_(display_context->getSceneManager(), submap_node_,
-                 pose_axes_length, pose_axes_radius),
-      submap_id_text_(QString("(%1,%2)")
-                          .arg(id.trajectory_id)
-                          .arg(id.submap_index)
-                          .toStdString()),
+      pose_axes_(display_context->getSceneManager(), submap_node_, 0, 0),
+      submap_id_text_(""),
       last_query_timestamp_(0) {
   for (int slice_index = 0; slice_index < kNumberOfSlicesPerSubmap;
        ++slice_index) {
@@ -73,10 +69,10 @@ DrawableSubmap::DrawableSubmap(const ::cartographer::mapping::SubmapId& id,
   visibility_ = absl::make_unique<::rviz::BoolProperty>(
       "" /* title */, visible, "" /* description */, submap_category,
       SLOT(ToggleVisibility()), this);
-  submap_id_text_.setCharacterHeight(kSubmapIdCharHeight);
-  submap_id_text_.setColor(kSubmapIdColor);
-  submap_id_text_.setTextAlignment(::rviz::MovableText::H_CENTER,
-                                   ::rviz::MovableText::V_ABOVE);
+  // submap_id_text_.setCharacterHeight(kSubmapIdCharHeight);
+  // submap_id_text_.setColor(kSubmapIdColor);
+  // submap_id_text_.setTextAlignment(::rviz::MovableText::H_CENTER,
+  //                                 ::rviz::MovableText::V_ABOVE);
   // TODO(jihoonl): Make it toggleable.
   submap_id_text_node_->setPosition(ToOgre(kSubmapIdPosition));
   submap_id_text_node_->attachObject(&submap_id_text_);

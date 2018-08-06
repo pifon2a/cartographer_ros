@@ -123,6 +123,10 @@ install(TARGETS cartographer_dev_trajectory_comparison
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+install(PROGRAMS
+  ../scripts/marker_ronin_node.sh
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 # TODO(cschuet): Add support for shared library case.
 if (${BUILD_GRPC})
